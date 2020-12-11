@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Display Drawing Toolbar on Map</title>
+<style>html,body,#main{height:100%;}body{padding:0;margin:0;background:#333;}h1{padding:0;margin:0;font-size:50%;color:white;}p{margin:0}</style>
+</head>
+<body>
+
+
+<!-- MAP[START] -->
+<div id="main">
+    <p>
+        <input type="text" id="from" value="明治神宮前"> <button id="get">Search</button>
+    </p>
+    <div id="myMap" style='width:100%;height:96%;'></div>
+</div>
+<!-- MAP[END] -->
+
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=[YOUR KEY]' async defer></script>
+<script src="js/BmapQuery.js"></script>
+<script>
+let map, drawingManager,searchManager;
+function GetMap() {
+    map = new Microsoft.Maps.Map('#myMap', {
+        zoom: 15,
+        center: new Microsoft.Maps.Location(35.669029, 139.7034066),
+        mapTypeId: Microsoft.Maps.MapTypeId.aerial
+    });
+    //Load the DrawingTools module
+    Microsoft.Maps.loadModule('Microsoft.Maps.DrawingTools', function () {
+        //Create an instance of the DrawingTools class and bind it to the map.
+        let tools = new Microsoft.Maps.DrawingTools(map);
+
+        //Show the drawing toolbar and enable editting on the map.
+        tools.showDrawingManager(function (manager) {
+            //Store a reference to the drawing manager as it will be useful later.
+            drawingManager = manager;
+        })
+    });
+
+    geocodeQuery(document.getElementById("from").value);
+}
+//Geocode：Location
+function geocodeQuery(query) {
+    //If search manager is not defined, load the search module.
+    if (!searchManager) {
+        //Create an instance of the search manager and call the geocodeQuery function again.
+        Microsoft.Maps.loadModule('Microsoft.Maps.Search', function () {
+            searchManager = new Microsoft.Maps.Search.SearchManager(map);
+            geocodeQuery(query);
+        });
+    } else {
+        let searchRequest = {
+            where: query,
+            callback: function (r) {
+                //Add the first result to the map and zoom into it.
+                if (r && r.results && r.results.length > 0) {
+                    var pin = new Microsoft.Maps.Pushpin(r.results[0].location);
+                    map.entities.push(pin);
+
+                    map.setView({ bounds: r.results[0].bestView });
+                }
+            },
+            errorCallback: function (e) {
+                //If there is an error, alert the user about it.
+                alert("No results found.");
+            }
+        };
+        //Make the geocode request.
+        searchManager.geocode(searchRequest);
+    }
+}
+//SearchButton
+document.getElementById("get").onclick = function(){
+    geocodeQuery(document.getElementById("from").value);
+};
+
+</script>
+</body>
+</html>
+
+
